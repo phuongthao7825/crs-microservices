@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # Route cho User Service
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/users/**, /api/auth/**
+
+        # Route cho Course Service
+        - id: course-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/courses/**, /api/public/**
+
+# Cấu hình API Key cho Partner (Khắc phục lỗi Could not resolve placeholder)
+partner:
+  api-key: my-secret-api-key-123
