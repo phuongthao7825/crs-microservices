@@ -7,18 +7,21 @@ spring:
   cloud:
     gateway:
       routes:
-        # Route cho User Service
-        - id: user-service
-          uri: http://localhost:8081
+        - id: course-service-public
+          uri: http://localhost:8082
           predicates:
-            - Path=/api/users/**, /api/auth/**
+            - Path=/api/public/**
 
-        # Route cho Course Service
         - id: course-service
           uri: http://localhost:8082
           predicates:
-            - Path=/api/courses/**, /api/public/**
+            - Path=/api/courses/**
 
-# Cấu hình API Key cho Partner (Khắc phục lỗi Could not resolve placeholder)
-partner:
-  api-key: my-secret-api-key-123
+        - id: registration-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/registrations/**
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration

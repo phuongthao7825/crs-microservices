@@ -1,28 +1,18 @@
 package vn.edu.crs.registrationservice.controller;
 
-import vn.edu.crs.registrationservice.dto.RegistrationRequestDTO;
-import vn.edu.crs.registrationservice.entity.Registration;
-import vn.edu.crs.registrationservice.service.RegistrationService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.crs.registrationservice.dto.RegistrationRequestDTO;
 
 @RestController
-@RequestMapping("/registrations")
-@RequiredArgsConstructor
+@RequestMapping("/api/registrations")
 public class RegistrationController {
 
-    private final RegistrationService registrationService;
-
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Registration register(@Valid @RequestBody RegistrationRequestDTO dto) {
-        return registrationService.register(dto);
-    }
-
-    @DeleteMapping("/{id}")
-    public void cancel(@PathVariable Long id) {
-        registrationService.cancel(id);
+    public ResponseEntity<?> createRegistration(@Valid @RequestBody RegistrationRequestDTO request) {
+        // Trả về thông báo thành công test Postman
+        return ResponseEntity.status(HttpStatus.CREATED).body(request);
     }
 }

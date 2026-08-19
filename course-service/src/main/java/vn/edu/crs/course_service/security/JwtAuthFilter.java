@@ -22,18 +22,21 @@ import java.util.List;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    @Value("${jwt.secret:mySecretKey123456789012345678901234567890}")
+    private String jwtSecret;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             try {
-                SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+                SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+
+                // Cú pháp giải mã JWT cho thư viện JJWT phiên bản mới (0.12.x+)
                 Claims claims = Jwts.parser()
                         .verifyWith(key)
                         .build()
@@ -43,14 +46,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
 
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        username, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (username != null && role != null) {
+                    List<SimpleGrantedAuthority> authorities = List.of(
+                            new SimpleGrantedAuthority(role),
+                            new SimpleGrantedAuthority("ROLE_" + role)
+                    );
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

@@ -1,4 +1,4 @@
-package vn.edu.crs.registration_service.security;
+package vn.edu.crs.registrationservice.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -22,7 +22,7 @@ import java.util.List;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret:CRS-Microservices-Secret-Key-Nam-3-Hoc-Ky-2026-Doi-Trong-Thuc-Te}")
     private String secret;
 
     @Override
@@ -30,27 +30,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             try {
                 SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-                Claims claims = Jwts.parser()
-                        .verifyWith(key)
+
+                // Thay .verifyWith(key) và .build() bằng .setSigningKey(key) tương thích bản 0.11.5
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(key)
                         .build()
-                        .parseSignedClaims(token)
-                        .getPayload();
+                        .parseClaimsJws(token)
+                        .getBody();
 
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
 
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        username, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (username != null) {
+                    var authToken = new UsernamePasswordAuthenticationToken(
+                            username, null, List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             } catch (Exception e) {
+                // Token không hợp lệ hoặc hết hạn
                 SecurityContextHolder.clearContext();
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }
