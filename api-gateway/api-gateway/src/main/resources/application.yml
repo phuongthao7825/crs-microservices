@@ -6,22 +6,21 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
       routes:
-        - id: course-service-public
-          uri: http://localhost:8082
-          predicates:
-            - Path=/api/public/**
-
         - id: course-service
           uri: http://localhost:8082
           predicates:
             - Path=/api/courses/**
-
-        - id: registration-service
-          uri: http://localhost:8083
-          predicates:
-            - Path=/api/registrations/**
-
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
