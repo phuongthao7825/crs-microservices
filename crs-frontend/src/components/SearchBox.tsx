@@ -1,36 +1,28 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 
 interface SearchBoxProps {
-  onSearch: (keyword: string) => void;
-  placeholder?: string;
+  keyword: string;
+  onSearchChange: (value: string) => void;
 }
 
-export default function SearchBox({ onSearch, placeholder }: SearchBoxProps) {
-  const [inputValue, setInputValue] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearch(inputValue.trim());
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [inputValue, onSearch]);
-
+export const SearchBox: React.FC<SearchBoxProps> = ({ keyword, onSearchChange }) => {
   return (
-    <input
-      type="text"
-      value={inputValue}
-      onChange={(e) => setInputValue(e.target.value)}
-      placeholder={placeholder ?? 'Tim kiem theo ten mon hoc...'}
-      style={{
-        width: '100%',
-        maxWidth: 400,
-        padding: '8px 12px',
-        fontSize: 14,
-        border: '1px solid #ccc',
-        borderRadius: 6,
-        boxSizing: 'border-box'
-      }}
-    />
+    <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
+      <input
+        type="text"
+        placeholder="🔍 Tìm kiếm theo tên môn học..."
+        value={keyword}
+        onChange={(e) => onSearchChange(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '10px 14px',
+          borderRadius: '8px',
+          border: '1px solid #cbd5e1',
+          outline: 'none',
+          fontSize: '14px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+        }}
+      />
+    </div>
   );
-}
+};

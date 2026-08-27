@@ -1,40 +1,59 @@
 import { useState } from 'react';
 import { useCourses } from './api/useCourses';
-import SearchBox from './components/SearchBox';
-import CourseList from './components/CourseList';
-import Pagination from './components/Pagination';
+import { SearchBox } from './components/SearchBox';
+import { CourseList } from './components/CourseList';
 
-function App() {
+export function App() {
   const [keyword, setKeyword] = useState('');
-  const [page, setPage] = useState(0);
+  const { courses, loading, error, refetch } = useCourses('');
 
-  const { courses, totalPages, state, errorMessage, refetch } = useCourses(keyword, page);
-
-  const handleSearch = (newKeyword: string) => {
-    setKeyword(newKeyword);
-    setPage(0);
+  // Hàm loại bỏ dấu tiếng Việt để tìm kiếm chính xác hơn
+  const removeAccents = (str: string) => {
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
   };
 
-  return (
-    <div style={{ padding: 24, fontFamily: 'sans-serif', maxWidth: 800, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 20 }}>Danh sach mon hoc</h1>
-      
-      <SearchBox onSearch={handleSearch} />
-      
-      <div style={{ marginTop: 16 }}>
-        <CourseList
-          courses={courses}
-          state={state}
-          errorMessage={errorMessage}
-          onRetry={refetch}
-        />
-      </div>
+  // Lọc danh sách môn học theo từ khóa ngay tại Frontend
+  const filteredCourses = courses.filter((course) => {
+    const searchKey = removeAccents(keyword.toLowerCase().trim());
+    const courseName = removeAccents((course.name || '').toLowerCase());
+    const courseCode = removeAccents((course.code || '').toLowerCase());
 
-      <Pagination 
-        currentPage={page} 
-        totalPages={totalPages} 
-        onPageChange={setPage} 
-      />
+    return courseName.includes(searchKey) || courseCode.includes(searchKey);
+  });
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px', fontFamily: 'Arial, sans-serif' }}>
+      <h2 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '24px' }}>
+        📚 Danh sách môn học
+      </h2>
+
+      {/* Thanh tìm kiếm */}
+      <SearchBox keyword={keyword} onSearchChange={setKeyword} />
+
+      {/* Trạng thái Loading / Error / Data */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+          Đang tải dữ liệu...
+        </div>
+      )}
+
+      {error && (
+        <div style={{ padding: '16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', marginBottom: '16px' }}>
+          <p style={{ margin: '0 0 10px 0' }}>Không kết nối được tới hệ thống. Vui lòng thử lại sau.</p>
+          <button 
+            onClick={refetch}
+            style={{ padding: '6px 12px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && <CourseList courses={filteredCourses} />}
     </div>
   );
 }
