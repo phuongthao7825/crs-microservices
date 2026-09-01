@@ -1,61 +1,109 @@
-import { useState } from 'react';
-import { useCourses } from './api/useCourses';
-import { SearchBox } from './components/SearchBox';
-import { CourseList } from './components/CourseList';
+import { useState, useEffect } from 'react';
+import CourseForm from './components/CourseForm';
+import CourseList from './components/CourseList';
+import SearchBox from './components/SearchBox';
+import type { Course, CourseFormValues } from './types/course';
+import * as courseApi from './api/courseApi'; // Sử dụng trực tiếp courseApi
 
-export function App() {
+export default function App() {
+  const [courses, setCourses] = useState<any>([]);
   const [keyword, setKeyword] = useState('');
-  const { courses, loading, error, refetch } = useCourses('');
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [state, setState] = useState<'loading' | 'success' | 'error' | 'empty'>('loading');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Hàm loại bỏ dấu tiếng Việt để tìm kiếm chính xác hơn
-  const removeAccents = (str: string) => {
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D');
+  // Hàm tải danh sách môn học
+  const fetchCourses = async () => {
+    setState('loading');
+    try {
+      const res = await fetch(`http://localhost:8080/api/courses?keyword=${encodeURIComponent(keyword)}`);
+      if (!res.ok) throw new Error('Khong the tải danh sach mon hoc');
+      const data = await res.json();
+      setCourses(data);
+      
+      const list = Array.isArray(data) ? data : (data?.content || []);
+      setState(list.length === 0 ? 'empty' : 'success');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Da xai ra loi');
+      setState('error');
+    }
   };
 
-  // Lọc danh sách môn học theo từ khóa ngay tại Frontend
-  const filteredCourses = courses.filter((course) => {
-    const searchKey = removeAccents(keyword.toLowerCase().trim());
-    const courseName = removeAccents((course.name || '').toLowerCase());
-    const courseCode = removeAccents((course.code || '').toLowerCase());
+  useEffect(() => {
+    fetchCourses();
+  }, [keyword]);
 
-    return courseName.includes(searchKey) || courseCode.includes(searchKey);
-  });
+  // Thêm / Sửa môn học
+  const handleFormSubmit = async (values: CourseFormValues) => {
+    try {
+      const payload = {
+        tenMonHoc: values.tenMonHoc,
+        soTinChi: Number(values.soTinChi),
+        soChoToiDa: Number(values.soChoToiDa),
+      };
+
+      if (editingCourse) {
+        await fetch(`http://localhost:8080/api/courses/${editingCourse.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        setEditingCourse(null);
+      } else {
+        await fetch('http://localhost:8080/api/courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      fetchCourses();
+    } catch (err) {
+      alert('Thao tac that bai, vui long thu lai!');
+    }
+  };
+
+  // Xóa môn học
+  const handleDelete = async (course: Course) => {
+    if (window.confirm(`Ban co chac muon xoa mon "${course.tenMonHoc}"?`)) {
+      try {
+        await fetch(`http://localhost:8080/api/courses/${course.id}`, {
+          method: 'DELETE',
+        });
+        fetchCourses();
+      } catch (err) {
+        alert('Xoa mon hoc that bai!');
+      }
+    }
+  };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px', fontFamily: 'Arial, sans-serif' }}>
-      <h2 style={{ fontSize: '24px', color: '#0f172a', marginBottom: '24px' }}>
-        📚 Danh sách môn học
-      </h2>
+    <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
+      <h1>Quan ly mon hoc (Admin)</h1>
 
-      {/* Thanh tìm kiếm */}
-      <SearchBox keyword={keyword} onSearchChange={setKeyword} />
+      <CourseForm
+        initialValues={editingCourse ? {
+          tenMonHoc: editingCourse.tenMonHoc,
+          soTinChi: String(editingCourse.soTinChi),
+          soChoToiDa: String(editingCourse.soChoToiDa),
+        } : undefined}
+        isEditing={!!editingCourse}
+        onSubmit={handleFormSubmit}
+        onCancel={() => setEditingCourse(null)}
+      />
 
-      {/* Trạng thái Loading / Error / Data */}
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-          Đang tải dữ liệu...
-        </div>
-      )}
+      <SearchBox
+        keyword={keyword}
+        onSearchChange={(val) => setKeyword(val)}
+      />
 
-      {error && (
-        <div style={{ padding: '16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', marginBottom: '16px' }}>
-          <p style={{ margin: '0 0 10px 0' }}>Không kết nối được tới hệ thống. Vui lòng thử lại sau.</p>
-          <button 
-            onClick={refetch}
-            style={{ padding: '6px 12px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Thử lại
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && <CourseList courses={filteredCourses} />}
+      <CourseList
+        courses={courses}
+        state={state}
+        errorMessage={errorMessage}
+        onRetry={fetchCourses}
+        onEdit={(course) => setEditingCourse(course)}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }
-
-export default App;

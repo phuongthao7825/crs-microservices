@@ -1,28 +1,34 @@
 import React from 'react';
 
 interface SearchBoxProps {
-  keyword: string;
-  onSearchChange: (value: string) => void;
+  keyword?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  onSearchChange?: (value: string) => void;
 }
 
-export const SearchBox: React.FC<SearchBoxProps> = ({ keyword, onSearchChange }) => {
+export default function SearchBox(props: SearchBoxProps) {
+  const currentValue = props.keyword ?? props.value ?? '';
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (props.onSearchChange) props.onSearchChange(val);
+    if (props.onChange) props.onChange(val);
+  };
+
   return (
-    <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
-      <input
-        type="text"
-        placeholder="🔍 Tìm kiếm theo tên môn học..."
-        value={keyword}
-        onChange={(e) => onSearchChange(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '10px 14px',
-          borderRadius: '8px',
-          border: '1px solid #cbd5e1',
-          outline: 'none',
-          fontSize: '14px',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-        }}
-      />
-    </div>
+    <input
+      type="text"
+      placeholder="Tìm kiếm theo tên môn học..."
+      value={currentValue}
+      onChange={handleChange}
+      style={{
+        width: '100%',
+        padding: '8px 12px',
+        marginBottom: '16px',
+        borderRadius: '4px',
+        border: '1px solid #ccc',
+      }}
+    />
   );
-};
+}
